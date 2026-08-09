@@ -1,0 +1,61 @@
+name: E2E Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e-test:
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Verify device connection
+        run: adb devices | grep -w "device"
+
+      - name: Start Appium
+        run: |
+          appium &
+          sleep 5
+          curl -s http://127.0.0.1:4723/status | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['value']['ready']"
+
+      - name: Start Ollama
+        run: |
+          ollama serve &
+          sleep 3
+          ollama list | grep gemma3
+
+      - name: Run E2E tests
+        run: |
+          source venv/bin/activate
+          python -m pytest tests/test_e2e_scenario.py \
+            --alluredir=reports/allure-results \
+            -v
+
+      - name: Generate Allure report
+        if: always()
+        run: allure generate reports/allure-results -o reports/allure-report --clean
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: reports/allure-report
+          retention-days: 30
+
+      - name: Stop Appium
+        if: always()
+        run: pkill -f appium || true

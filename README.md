@@ -72,6 +72,27 @@ triggers-auto/
 
 ![Allure Report](docs/screenshots/allure_report.png)
 
+## CI/CD
+
+GitHub Actions + **self-hosted runner**로 E2E 테스트 자동 실행을 지원합니다.
+
+```mermaid
+flowchart LR
+    A["GitHub Push"] --> B["Self-hosted Runner"]
+    B --> C["환경 구성"]
+    C --> D["E2E 테스트 실행"]
+    D --> E["Allure 리포트 생성"]
+    E --> F["결과 아카이브"]
+
+    C --- C1["Appium 서버 기동"]
+    C --- C2["Ollama 모델 로드"]
+    C --- C3["디바이스 연결 확인"]
+```
+
+- **트리거**: push / pull request / 수동 실행
+- **러너 요구사항**: Android 단말 USB 연결, Appium, Ollama, Python
+- **결과물**: Allure 리포트 아티팩트 (30일 보관)
+
 ## 기술 스택
 
 - **Python** — 메인 언어
