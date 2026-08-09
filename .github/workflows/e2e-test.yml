@@ -3,6 +3,9 @@ name: E2E Test
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -16,26 +19,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python (cached)
         run: |
-          python3 -m venv venv
+          if [ ! -d venv ]; then
+            python3 -m venv venv
+          fi
           source venv/bin/activate
-          pip install -r requirements.txt
+          pip install -q -r requirements.txt
 
       - name: Verify device connection
         run: adb devices | grep -w "device"
 
-      - name: Start Appium
+      - name: Ensure Appium running
         run: |
-          appium &
-          sleep 5
-          curl -s http://127.0.0.1:4723/status | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['value']['ready']"
+          if curl -s http://127.0.0.1:4723/status | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['value']['ready']" 2>/dev/null; then
+            echo "Appium already running"
+          else
+            appium &
+            sleep 5
+            curl -s http://127.0.0.1:4723/status | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['value']['ready']"
+          fi
 
-      - name: Start Ollama
+      - name: Ensure Ollama running
         run: |
-          ollama serve &
-          sleep 3
-          ollama list | grep gemma3
+          if ollama list 2>/dev/null | grep -q gemma3; then
+            echo "Ollama already running"
+          else
+            ollama serve &
+            sleep 3
+            ollama list | grep gemma3
+          fi
 
       - name: Run E2E tests
         run: |
@@ -55,7 +68,3 @@ jobs:
           name: allure-report
           path: reports/allure-report
           retention-days: 30
-
-      - name: Stop Appium
-        if: always()
-        run: pkill -f appium || true
