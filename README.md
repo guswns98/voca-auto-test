@@ -92,6 +92,7 @@ flowchart LR
 - **트리거**: push / pull request / 수동 실행
 - **러너 요구사항**: Android 단말 USB 연결, Appium, Ollama, Python
 - **결과물**: Allure 리포트 아티팩트 (30일 보관)
+- **실행 결과**: [CI/CD 실행 기록](https://github.com/guswns98/voca-auto-test/actions/runs/31288130415)
 
 ## 기술 스택
 
